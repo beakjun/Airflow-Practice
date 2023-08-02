@@ -18,14 +18,13 @@ dag=DAG(
 date_comparison = BashOperator(
     task_id = "date_comparison",
     bash_command=(
-    "echo execution_date : {{execution_date}}"
-    "echo next_execution_date : {{next_execution_date}}"
-    "echo ds(start_date) : {{ds}}"
-    "echo next_ds(end_date) : {{next_ds}}"
-    "echo logical_date :{{logical_date}}"
-    "echo data_interval_end :{{data_interval_end}}" 
-    "echo data_interval_start : {{data_interval_start}}"
+    'echo -e "execution_date: {{execution_date}}\n'
+    'next_execution_date: {{next_execution_date}}\n'
+    'ds(start_date): {{ds}}\n'
+    'next_ds(end_date): {{next_ds}}\n'
+    'logical_date:{{logical_date}}\n'
+    'data_interval_end:{{data_interval_end}}\n'
+    'data_interval_start: {{data_interval_start}}"'
     ),
     dag=dag
 )
-date_comparison
