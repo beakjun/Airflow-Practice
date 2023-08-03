@@ -11,8 +11,8 @@ from sqlalchemy import create_engine
 # [START instantiate_dag]
 dag=DAG(
     dag_id='schedule_test',
-    start_date=airflow.utils.dates.days_ago(14),
-    schedule_interval=None
+    start_date=airflow.utils.dates.days_ago(1),
+    schedule_interval='@daily'
 )
 
 date_comparison = BashOperator(
