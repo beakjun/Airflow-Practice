@@ -14,7 +14,7 @@ dag=DAG(
     start_date=airflow.utils.dates.days_ago(1),
     schedule_interval='@daily'
 )
-
+#### 각 날짜관련 테스크 콘테스트 비교 출력
 date_comparison = BashOperator(
     task_id = "date_comparison",
     bash_command=(
