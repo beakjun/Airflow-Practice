@@ -37,7 +37,6 @@ def stock_market_crawling():
     def date_execution(**kwargs):
         execution_date=kwargs['data_interval_end']
         #execution_date=local_tz.convert(execution_date)
-        print('@@@@@@@@',execution_date)
         logging.info(f'collection date : {execution_date}')
         return execution_date
     
@@ -48,16 +47,11 @@ def stock_market_crawling():
     
     @task
     def extract_date(df,date):
-        print("123@@@@@@@@@@@@@@@@@@@",date)
         try : 
-            
             date=date.strftime('%Y.%m.%d')
         except ValueError as e:
             print(f"Error occurred: {e}")
-            logging.info('주말/공휴일')
-        
         new_df = df[df['날짜']==date]
-    
         new_df.drop(columns = '전일비', inplace =True)
         new_df['등락률'] = new_df['등락률'].apply(lambda x:x[:-1]).astype(float)
         new_df.rename(columns={'등락률': '등락률(%)'},inplace=True)
