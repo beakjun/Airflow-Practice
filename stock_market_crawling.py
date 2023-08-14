@@ -40,11 +40,17 @@ def stock_market_crawling():
         logging.info(f'collection date : {execution_date}')
         return execution_date
     
+
     @task
-    def html_request(url):
-        df=pd.read_html(url)[0]
-        return df
-    
+    def html_request(url,date):
+        date=date.strftime('%Y.%m.%d')
+        page=0
+        while True:
+            page+=1
+            url=url+str(i)
+            df=pd.read_html(url)[0]
+            if df[df['날짜']==date]:
+                return df
     @task
     def extract_date(df,date):
         try : 
