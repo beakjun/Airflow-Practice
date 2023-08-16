@@ -18,6 +18,7 @@ create_employees_table = PostgresOperator(
             "Description" TEXT,
             "Leave" INTEGER
         );""",
+    dag=dag
 )
 
 create_employees_temp_table = PostgresOperator(

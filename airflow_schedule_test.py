@@ -1,11 +1,6 @@
-import pendulum
 import airflow
 from airflow import DAG
-from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
-import pandas as pd
-from airflow.providers.postgres.hooks.postgres import PostgresHook
-from sqlalchemy import create_engine
 
 
 # [START instantiate_dag]
