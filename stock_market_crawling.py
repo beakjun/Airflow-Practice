@@ -14,13 +14,13 @@ def get_postgres(autocommit=True):
     conn.autocommit = autocommit
     return conn.cursor()
 
-url = 'https://finance.naver.com/sise/sise_index_day.naver?code=KOSPI&page=1'
+url = 'https://finance.naver.com/sise/sise_index_day.naver?code=KOSPI&page='
 
 
 
 # [START instantiate_dag]
 @dag(
-    dag_id = 'stock_market_crawling',
+    dag_id = 'stock_market_crawling_1',
     schedule_interval='30 16 * * 1-5',
     start_date=pendulum.datetime(2023, 7, 25, 16 ,30 , tz='Asia/Seoul'),
     #end_date = pendulum.now(),
@@ -46,18 +46,18 @@ def stock_market_crawling():
         date=date.strftime('%Y.%m.%d')
         page=0
         while True:
+            if page>2000:
+                break
             page+=1
-            url=url+str(i)
-            df=pd.read_html(url)[0]
-            if df[df['날짜']==date]:
-                return df
+            url1=url+str(page)
+            df=pd.read_html(url1)[0]
+            print(url,df)
+            print(date, df['날짜'])
+            if date in list(df['날짜']):
+                return df[df['날짜']==date]
     @task
     def extract_date(df,date):
-        try : 
-            date=date.strftime('%Y.%m.%d')
-        except ValueError as e:
-            print(f"Error occurred: {e}")
-        new_df = df[df['날짜']==date]
+        new_df = df.copy()
         new_df.drop(columns = '전일비', inplace =True)
         new_df['등락률'] = new_df['등락률'].apply(lambda x:x[:-1]).astype(float)
         new_df.rename(columns={'등락률': '등락률(%)'},inplace=True)
@@ -75,7 +75,7 @@ def stock_market_crawling():
         
 
     edate=date_execution()
-    df = html_request(url)
+    df = html_request(url,edate)
     new_df = extract_date(df,edate)
     load(new_df,'test.stock_chart_test',edate)
 # [START dag_invocation]
