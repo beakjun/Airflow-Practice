@@ -1,38 +1,79 @@
-from datetime import datetime
-from airflow import DAG
-from airflow.operators.dummy_operator import DummyOperator
-from airflow.operators.python_operator import PythonOperator
-def process_task_fn(item, **kwargs):
-    print(f"Processing: {item}")
+import pendulum
+from airflow.decorators import dag, task
+import pandas as pd
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+import requests
+from sqlalchemy import create_engine
+# [END import_module]
 
-default_args = {
-    'owner': 'airflow',
-    'start_date': datetime(2022, 1, 1),
-}
 
-dag = DAG(
-    'dynamic_tasks_to_end_task',
-    default_args=default_args,
-    description='DAG with dynamically generated tasks all pointing to an end task',
-    schedule_interval='@daily',
+
+
+#param={'Servicekey': key ,'resultType':'json','numOfRows':3000,'basDt':'20230821'}
+url='https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo?'
+# response=requests.get(url,param)
+
+
+
+# df_contacts = pd.json_normalize(datajs, record_path=['response','body','items','item'])
+
+def get_postgres(autocommit=True):
+    hook = PostgresHook(postgres_conn_id = 'sr-postgres')
+    conn = hook.get_conn()
+    conn.autocommit = autocommit
+    return conn.cursor()
+
+
+    
+
+
+# [START instantiate_dag]
+@dag(
+    dag_id = 'stock_market_crawling_1',
+    schedule_interval='0 12 * * 1-5',
+    start_date=pendulum.datetime(2023, 7, 1, 16 ,30 , tz='Asia/Seoul'),
+    #end_date = pendulum.now(),
+    catchup=True,  # backfill과 비슷한 기능 
+    tags=['crawling'],
 )
-start_task = DummyOperator(task_id='start_task', dag=dag)
-items = ["item1", "item2", "item3"]
+def stock_market_crawling():
 
-# 동적으로 태스크를 생성합니다
-tasks = []
-for item in items:
-    task = PythonOperator(
-        task_id=f'process_task_{item}',
-        python_callable=process_task_fn,
-        op_args=[item],
-        dag=dag,
-    )
-    tasks.append(task)
+    # [END instantiate_dag]
 
-# end 태스크를 생성합니다
-end_task = DummyOperator(task_id='end_task', dag=dag)
+    # [START extract]
 
-# 생성된 모든 태스크를 end 태스크에 연결합니다
-for task in tasks:
-    start_task >> task >> end_task
+    @task
+    def date_execution(**kwargs):
+        execution_date=kwargs['logical_date']
+        return execution_date
+    
+
+    @task
+    def html_request(url,bsdt):
+        key='VtJk4y5W9b0T3ZOFuwD8v+nyzxuOEfRsSeIU8pnok9bPZpxQ40a9qzwoMB38tnJgog/lvxMAxNBJNMpt4f482A=='
+        bsdt=bsdt.strftime('%Y%m%d')
+        param = {'Servicekey': key ,'resultType':'json','numOfRows':3000,'basDt':bsdt}
+        response=requests.get(url,param)
+        print(response.text)
+        if response.status_code != 200:
+            raise ValueError(f"Request failed with status code {response.status_code}")
+        data=response.json()
+        df = pd.json_normalize(data,record_path=['response','body','items','item'])
+        if len(df)==0:
+            raise ValueError("Empty Data")
+        return df
+    
+    @task
+    def load(table_nm,df):
+        postgres_hook = PostgresHook('sr-postgres')
+        engine=create_engine(postgres_hook.get_uri(), echo=False)
+        df.to_sql(table_nm,engine,schema='test',if_exists='append',index=False)
+
+# [START dag_invocation]
+    bsdt=date_execution()
+    df=html_request(url,bsdt)
+    load('stock_market_tbl',df)
+stock_market_crawling()
+# [END dag_invocation]
+
+# [END tutorial]
