@@ -29,7 +29,7 @@ def get_postgres(autocommit=True):
 
 # [START instantiate_dag]
 @dag(
-    dag_id = 'stock_market_crawling_1',
+    dag_id = 'stock_market_crawling',
     schedule_interval='0 12 * * 1-5',
     start_date=pendulum.datetime(2023, 7, 1, 16 ,30 , tz='Asia/Seoul'),
     #end_date = pendulum.now(),
