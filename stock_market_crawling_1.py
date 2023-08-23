@@ -58,15 +58,14 @@ def stock_market_crawling():
         if response.status_code != 200:
             raise ValueError(f"Request failed with status code {response.status_code}")
         data=response.json()
-        if len(date)==0:
-            raise ValueError("Empty Data")
         df = pd.json_normalize(data,record_path=['response','body','items','item'])
+        if len(df)==0:
+            raise ValueError("Empty Data")
         return df
     
     @task
     def load(table_nm,df):
         postgres_hook = PostgresHook('sr-postgres')
-        conn=postgres_hook.get_conn()
         engine=create_engine(postgres_hook.get_uri(), echo=False)
         df.to_sql(table_nm,engine,schema='test',if_exists='append',index=False)
 
