@@ -18,7 +18,7 @@ url='https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getSt
 # df_contacts = pd.json_normalize(datajs, record_path=['response','body','items','item'])
 
 def get_postgres(autocommit=True):
-    hook = PostgresHook(postgres_conn_id = 'sr-postgres')
+    hook = PostgresHook(postgres_conn_id = 'bj-postgres')
     conn = hook.get_conn()
     conn.autocommit = autocommit
     return conn.cursor()
@@ -54,20 +54,20 @@ def stock_market_crawling():
         bsdt=bsdt.strftime('%Y%m%d')
         param = {'Servicekey': key ,'resultType':'json','numOfRows':3000,'basDt':bsdt}
         response=requests.get(url,param)
-        print(response.text)
         if response.status_code != 200:
             raise ValueError(f"Request failed with status code {response.status_code}")
         data=response.json()
         df = pd.json_normalize(data,record_path=['response','body','items','item'])
         if len(df)==0:
             raise ValueError("Empty Data")
+        print(df)
         return df
     
     @task
     def load(table_nm,df):
-        postgres_hook = PostgresHook('sr-postgres')
+        postgres_hook = PostgresHook('bj-postgres')
         engine=create_engine(postgres_hook.get_uri(), echo=False)
-        df.to_sql(table_nm,engine,schema='test',if_exists='append',index=False)
+        df.to_sql(table_nm,engine,schema='airflow',if_exists='append',index=False)
 
 # [START dag_invocation]
     bsdt=date_execution()
