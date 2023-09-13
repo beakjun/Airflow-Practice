@@ -48,7 +48,7 @@ def stock_market_crawling():
         return execution_date
     
 
-    @task(retires=2)
+    @task(retries=2)
     def html_request(url,bsdt):
         key='VtJk4y5W9b0T3ZOFuwD8v+nyzxuOEfRsSeIU8pnok9bPZpxQ40a9qzwoMB38tnJgog/lvxMAxNBJNMpt4f482A=='
         bsdt=bsdt.strftime('%Y%m%d')
