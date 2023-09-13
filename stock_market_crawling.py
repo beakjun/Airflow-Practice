@@ -31,7 +31,7 @@ def get_postgres(autocommit=True):
 @dag(
     dag_id = 'stock_market_crawling',
     schedule_interval='0 12 * * 1-5',
-    start_date=pendulum.datetime(2023, 8, 1 , 12 ,00 , tz='Asia/Seoul'),
+    start_date=pendulum.datetime(2023, 5, 6 , 12 ,00 , tz='Asia/Seoul'),
     #end_date = pendulum.now(),
     catchup=True,  # backfill과 비슷한 기능 
     tags=['crawling'],
@@ -48,7 +48,7 @@ def stock_market_crawling():
         return execution_date
     
 
-    @task
+    @task(retires=2)
     def html_request(url,bsdt):
         key='VtJk4y5W9b0T3ZOFuwD8v+nyzxuOEfRsSeIU8pnok9bPZpxQ40a9qzwoMB38tnJgog/lvxMAxNBJNMpt4f482A=='
         bsdt=bsdt.strftime('%Y%m%d')
