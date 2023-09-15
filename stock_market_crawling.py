@@ -32,9 +32,10 @@ def get_postgres(autocommit=True):
 @dag(
     dag_id = 'stock_market_crawling',
     schedule_interval='0 12 * * 1-5',
-    start_date=pendulum.datetime(2022, 12, 31 , 12 ,00 , tz='Asia/Seoul'),
+    start_date=pendulum.datetime(2022,1, 1 , 12 ,00 , tz='Asia/Seoul'),
     #end_date = pendulum.now(),
     catchup=True,  # backfill과 비슷한 기능 
+    max_active_runs =10,
     tags=['crawling'],
 )
 def stock_market_crawling():
