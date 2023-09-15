@@ -1,4 +1,5 @@
 import pendulum
+from datetime import timedelta
 from airflow.decorators import dag, task
 import pandas as pd
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -31,7 +32,7 @@ def get_postgres(autocommit=True):
 @dag(
     dag_id = 'stock_market_crawling',
     schedule_interval='0 12 * * 1-5',
-    start_date=pendulum.datetime(2023, 3, 4 , 12 ,00 , tz='Asia/Seoul'),
+    start_date=pendulum.datetime(2022, 12, 31 , 12 ,00 , tz='Asia/Seoul'),
     #end_date = pendulum.now(),
     catchup=True,  # backfill과 비슷한 기능 
     tags=['crawling'],
@@ -48,7 +49,7 @@ def stock_market_crawling():
         return execution_date
     
 
-    @task(retries=2)
+    @task(retries=2,retry_delay=timedelta(minutes=1))
     def html_request(url,bsdt):
         key='VtJk4y5W9b0T3ZOFuwD8v+nyzxuOEfRsSeIU8pnok9bPZpxQ40a9qzwoMB38tnJgog/lvxMAxNBJNMpt4f482A=='
         bsdt=bsdt.strftime('%Y%m%d')
