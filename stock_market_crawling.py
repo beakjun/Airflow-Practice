@@ -36,6 +36,7 @@ def get_postgres(autocommit=True):
     #end_date = pendulum.now(),
     catchup=True,  # backfill과 비슷한 기능 
     max_active_runs =10,
+    concurrency = 10,
     tags=['crawling'],
 )
 def stock_market_crawling():
