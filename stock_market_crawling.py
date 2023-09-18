@@ -45,7 +45,7 @@ def stock_market_crawling():
 
     # [START extract]
 
-    @task
+    @task(retries=2, retry_delay=timedelta(minutes=1))
     def date_execution(**kwargs):
         execution_date=kwargs['logical_date']
         return execution_date
@@ -65,7 +65,7 @@ def stock_market_crawling():
             raise ValueError("Empty Data")
         return df
     
-    @task
+    @task(retries=2, retry_delay=timedelta(minutes=1))
     def load(table_nm,df):
         postgres_hook = PostgresHook('bj-postgres')
         engine=create_engine(postgres_hook.get_uri(), echo=False)
