@@ -70,7 +70,11 @@ def stock_market_crawling():
         postgres_hook = PostgresHook('bj-postgres')
         engine=create_engine(postgres_hook.get_uri(), echo=False)
         df.to_sql(table_nm,engine,schema='airflow',if_exists='append',index=False)
-
+    
+    def extract_kospi():
+        pass
+    def extract_kosdaq():
+        pass
 # [START dag_invocation]
     bsdt=date_execution()
     df=html_request(url,bsdt)
