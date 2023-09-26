@@ -70,15 +70,26 @@ def stock_market_crawling():
         postgres_hook = PostgresHook('bj-postgres')
         engine=create_engine(postgres_hook.get_uri(), echo=False)
         df.to_sql(table_nm,engine,schema='airflow',if_exists='append',index=False)
-    
-    def extract_kospi():
-        pass
-    def extract_kosdaq():
-        pass
+
+    @task(retries=2, retry_delay=timedelta(minutes=1))
+    def extract_kospi(table_nm,df):
+        postgres_hook = PostgresHook('bj-postgres')
+        engine=create_engine(postgres_hook.get_uri(), echo=False)
+        kospi_df = df[df['mrktCtg']=='KOSPI']
+        kospi_df.to_sql(table_nm,engine,schema='airflow',if_exists='append',index=False)
+
+    @task(retries=2, retry_delay=timedelta(minutes=1))
+    def extract_kosdaq(table_nm,df):
+        postgres_hook = PostgresHook('bj-postgres')
+        engine=create_engine(postgres_hook.get_uri(), echo=False)
+        kospi_df = df[df['mrktCtg']=='KOSDAQ']
+        kospi_df.to_sql(table_nm,engine,schema='airflow',if_exists='append',index=False)
 # [START dag_invocation]
     bsdt=date_execution()
     df=html_request(url,bsdt)
     load('stock_market_tbl',df)
+    extract_kospi('kospi_market_tbl',df)
+    extract_kosdaq('kosdaq_market_tbl',df)
 stock_market_crawling()
 # [END dag_invocation]
 
