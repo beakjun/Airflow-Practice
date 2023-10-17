@@ -4,6 +4,8 @@ from airflow.decorators import dag, task
 import pandas as pd
 import requests
 from airflow.providers.google.cloud.hooks.gcs import GCSHook
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from sqlalchemy import create_engine
 
 # [END import_module]
 
@@ -17,13 +19,13 @@ url='https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getSt
 # [START instantiate_dag]
 @dag(
     dag_id = 'stock_market_crawling',
-    schedule_interval='0 12 * * 1-5',
-    start_date=pendulum.datetime(2020,1, 1 , 12 ,00 , tz='Asia/Seoul'),
+    schedule_interval='0 9 * * 1-5',
+    start_date=pendulum.datetime(2023,1, 1 , 9 ,00 , tz='Asia/Seoul'),
     #end_date = pendulum.now(),
     catchup=True,  # backfill과 비슷한 기능 
     max_active_runs =10,
     concurrency = 10,
-    tags=['crawling'],
+    tags=['stock_price'],
 )
 def stock_market_crawling():
 
@@ -63,8 +65,37 @@ def stock_market_crawling():
                     )
         
 
+
+
+
+        
+    @task(retries=2,retry_delay=timedelta(minutes=1))
+    def extract_kospi(table_nm,df):
+        print(df['basDt'])
+        df['basDt'] = pd.to_datetime(df['basDt'], format='%Y%m%d')
+        df['basDt'] = df['basDt'].apply(lambda x:x.date())
+        df['fltRt']=df['fltRt'].astype(float)
+        df = df.astype({'clpr':int,'vs':int,'mkp':int,'hipr':int,'lopr':int,'trqu':int,'trPrc':int,'clpr':int,'lstgStCnt':int,'mrktTotAmt':int,})
+        df = df.sort_values(by=['basDt'])
+        postgres_hook = PostgresHook('bj-postgres')
+        engine=create_engine(postgres_hook.get_uri(), echo=False)
+        kospi_df = df[df['mrktCtg']=='KOSPI']
+        kospi_df.to_sql(table_nm,engine,schema='stockprice_info',if_exists='append',index=False)
+    
+    @task(retries=2, retry_delay=timedelta(minutes=1))
+    def extract_kosdaq(table_nm,df):
+        df['basDt'] = pd.to_datetime(df['basDt'], format='%Y%m%d')
+        df['basDt'] = df['basDt'].apply(lambda x:x.date())
+        df['fltRt']=df['fltRt'].astype(float)
+        df = df.astype({'clpr':int,'vs':int,'mkp':int,'hipr':int,'lopr':int,'trqu':int,'trPrc':int,'clpr':int,'lstgStCnt':int,'mrktTotAmt':int,})
+        df = df.sort_values(by=['basDt'])
+        postgres_hook = PostgresHook('bj-postgres')
+        engine=create_engine(postgres_hook.get_uri(), echo=False)
+        kospi_df = df[df['mrktCtg']=='KOSDAQ']
+        kospi_df.to_sql(table_nm,engine,schema='stockprice_info',if_exists='append',index=False)
+    
+
     bsdt=date_execution()
     df=html_request(url,bsdt)
-    upload_dataframe(df,bsdt)
-
+    upload_dataframe(df,bsdt) >> extract_kospi("kospi_stockprice_info",df)>>extract_kosdaq("kosdaq_stockprice_info",df)
 stock_market_crawling()
