@@ -7,6 +7,7 @@ from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from sqlalchemy import create_engine
 
+
 # [END import_module]
 
 
@@ -39,7 +40,7 @@ def stock_market_crawling():
         return execution_date
     
 
-    @task(retries=2,retry_delay=timedelta(minutes=1))
+    @task(retries=3,retry_delay=timedelta(minutes=60))
     def html_request(url,bsdt):
         key='VtJk4y5W9b0T3ZOFuwD8v+nyzxuOEfRsSeIU8pnok9bPZpxQ40a9qzwoMB38tnJgog/lvxMAxNBJNMpt4f482A=='
         bsdt=bsdt.strftime('%Y%m%d')
@@ -93,9 +94,34 @@ def stock_market_crawling():
         engine=create_engine(postgres_hook.get_uri(), echo=False)
         kospi_df = df[df['mrktCtg']=='KOSDAQ']
         kospi_df.to_sql(table_nm,engine,schema='stockprice_info',if_exists='append',index=False)
-    
 
+
+
+
+    def table_exists(engine, table_name, schema):
+        query = f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '{table_name}' AND table_schema = '{schema}')"
+        result = engine.execute(query).scalar()
+        return result
+
+    @task(retries=2, retry_delay=timedelta(minutes=1))
+    def ranking_table_gen(df):
+        df['basDt'] = pd.to_datetime(df['basDt'], format='%Y%m%d')
+        df['basDt'] = df['basDt'].apply(lambda x:x.date())
+        df['fltRt']=df['fltRt'].astype(float)
+        df = df.astype({'clpr':int,'vs':int,'mkp':int,'hipr':int,'lopr':int,'trqu':int,'trPrc':int,'clpr':int,'lstgStCnt':int,'mrktTotAmt':int,})
+        stat_df=df[['itmsNm','srtnCd','mrktCtg','basDt','clpr','vs','fltRt','trqu','mrktTotAmt']]
+        postgres_hook = PostgresHook('bj-postgres')
+        engine=create_engine(postgres_hook.get_uri(), echo=False)
+        if table_exists(engine, 'stockprice_stat', 'stockprice_info'):
+            # 테이블이 이미 존재하면 TRUNCATE
+            with engine.begin() as connection:
+                connection.execute('TRUNCATE TABLE stockprice_info.stockprice_stat')
+            stat_df.to_sql('stockprice_stat', engine, schema='stockprice_info', if_exists='append', index=False)
+        else:
+            stat_df.to_sql('stockprice_stat', engine, schema='stockprice_info', index=False)
+            # 테이블이 없으면 새로 생성
+            
     bsdt=date_execution()
     df=html_request(url,bsdt)
-    upload_dataframe(df,bsdt) >> extract_kospi("kospi_stockprice_info",df)>>extract_kosdaq("kosdaq_stockprice_info",df)
+    upload_dataframe(df,bsdt) >> extract_kospi("kospi_stockprice_info",df)>>extract_kosdaq("kosdaq_stockprice_info",df)>>ranking_table_gen(df)
 stock_market_crawling()
