@@ -24,8 +24,26 @@ def get_postgres(autocommit=True):
     conn.autocommit = autocommit
     return conn.cursor()
 
+        self.df['basDt'] = self.df['basDt'].apply(lambda x:x.date())
+        self.df['fltRt']=self.df['fltRt'].astype(float)
+        self.df = self.df.astype({'clpr':int,'vs':int,'mkp':int,'hipr':int,'lopr':int,'trqu':int,'trPrc':int,'clpr':int,'lstgStCnt':int,'mrktTotAmt':int,})
 
-    
+dtype = { 'basDt' : 'date',
+         'srtnCd' : 'char(6)',
+         'isinCd' : 'char(12)',
+         'itmsNm' : 'varchar(20)',
+         'mrkCtg' : 'varchar(10)',
+         'clpr' : 'int',
+         'vs' : 'int',
+         'fltRt' : 'numeric(4,2)',
+         'mkp' : 'int',
+         'hipr' : 'int',
+         'lopr' : 'int',
+         'trqu' : 'int',
+         'trPrc' : 'bigint',
+         'lstgStCnt' : 'bigint',
+         'mrktTotAmt' : 'bigint'
+}  
 
 
 # [START instantiate_dag]
@@ -76,14 +94,14 @@ def stock_market_crawling():
         postgres_hook = PostgresHook('bj-postgres')
         engine=create_engine(postgres_hook.get_uri(), echo=False)
         kospi_df = df[df['mrktCtg']=='KOSPI']
-        kospi_df.to_sql(table_nm,engine,schema='airflow',if_exists='append',index=False)
+        kospi_df.to_sql(table_nm,engine,schema='airflow',if_exists='append',index=False,type=dtype)
 
     @task(retries=2, retry_delay=timedelta(minutes=1))
     def extract_kosdaq(table_nm,df):
         postgres_hook = PostgresHook('bj-postgres')
         engine=create_engine(postgres_hook.get_uri(), echo=False)
         kospi_df = df[df['mrktCtg']=='KOSDAQ']
-        kospi_df.to_sql(table_nm,engine,schema='airflow',if_exists='append',index=False)
+        kospi_df.to_sql(table_nm,engine,schema='airflow',if_exists='append',index=False,type=dtype)
 # [START dag_invocation]
     bsdt=date_execution()
     df=html_request(url,bsdt)
