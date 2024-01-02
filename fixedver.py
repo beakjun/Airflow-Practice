@@ -18,7 +18,7 @@ url='https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getSt
 
 # [START instantiate_dag]
 @dag(
-    dag_id = 'collecting Stock price info',
+    dag_id = 'collecting_Stock_Price_Info',
     schedule_interval='0 9 * * 1-5',
     start_date=pendulum.datetime(2023,1, 1 , 9 ,00 , tz='Asia/Seoul'),
     #end_date = pendulum.now(),
@@ -110,4 +110,4 @@ def collecting_info():
     bsdt=date_execution()
     df=html_request(url,bsdt)
     extract_kospi("kospi_stockprice_info",df)>>extract_kosdaq("kosdaq_stockprice_info",df)>>ranking_table_gen(df)
-stock_market_crawling()
+collecting_info()
